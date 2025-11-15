@@ -8,7 +8,7 @@
     "migrate": "./dist/cli.js"
   },
   "scripts": {
-    "build": "bun build ./src --outdir ./dist",
+    "build": "rm -rf dist && tsc",
     "dev": "bun run ./src/cli.ts"
   },
   "devDependencies": {

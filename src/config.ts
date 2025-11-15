@@ -24,8 +24,7 @@ export async function loadConfig(): Promise<MigrationConfig> {
   }
 
   return {
-    migrationsDir:
-      process.env.MIGRATIONS_DIR ?? path.resolve("./migrations"),
+    migrationsDir: process.env.MIGRATIONS_DIR ?? path.resolve("./migrations"),
     rollbackDir: process.env.ROLLBACK_DIR,
   };
 }
