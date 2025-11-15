@@ -1,6 +1,6 @@
 import path from "path";
-import type { MigrationConfig } from "./config";
-import { log } from "./logger";
+import type { MigrationConfig } from "./config.js";
+import { log } from "./logger.js";
 import { readdirSync, existsSync } from "fs";
 
 export async function applyMigrations(
@@ -48,13 +48,11 @@ async function applyOne(sql: any, dir: string, file: string) {
   const full = path.resolve(dir, file);
   try {
     if (sql.file) {
-      // Bun.sql can use file() directly
       await sql.begin(async (tx: any) => {
         await tx.file(full);
         await tx`INSERT INTO applied_migrations (filename) VALUES (${file});`;
       });
     } else {
-      // For pg or others using `query`
       const fs = await import("fs/promises");
       const contents = await fs.readFile(full, "utf-8");
       await sql.query("BEGIN");

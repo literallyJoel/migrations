@@ -1,0 +1,14 @@
+src/
+tsconfig.json
+.gitignore
+.env
+.env.*
+*.test.ts
+*.test.js
+node_modules/
+.DS_Store
+migrations/
+rollbacks/
+migrations.config.ts
+migrations.config.js
+bun.lockb
