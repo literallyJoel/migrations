@@ -78,7 +78,7 @@ async function ensureAppliedTable(sql: any) {
     );
   `;
   if (sql.file) {
-    await sql`${cmd}`;
+    await sql.unsafe(`${cmd}`);
   } else {
     await sql.query(cmd);
   }

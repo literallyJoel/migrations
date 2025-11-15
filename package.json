@@ -1,6 +1,6 @@
 {
   "name": "@literallyjoel/migrations",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Universal SQL migration utility for Bun & Node",
   "type": "module",
   "main": "./dist/index.js",
