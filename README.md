@@ -142,6 +142,8 @@ Runs all rollback scripts in your rollback directory (in reverse order).
 
 ```bash
 npx migrate create --table=posts --dir=./database/migrations
+npx migrate apply --dir=./database/migrations
+npx migrate rollback --dir=./database/rollbacks
 ```
 
 ---

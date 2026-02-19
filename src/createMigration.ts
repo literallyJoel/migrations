@@ -26,5 +26,6 @@ export async function createMigration(
     log.success(`Created migration: ${filepath}`);
   } catch (e) {
     log.error("Failed to create migration file: " + e);
+    process.exit(1);
   }
 }

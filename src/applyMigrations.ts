@@ -1,6 +1,7 @@
 import path from "path";
-import type { MigrationConfig } from "./config.js";
-import { log } from "./logger.js";
+import type { MigrationConfig } from "./config";
+import { log } from "./logger";
+import { migrationsDir } from "./migrationsDir";
 import { readdirSync, existsSync } from "fs";
 
 export async function applyMigrations(
@@ -15,7 +16,7 @@ export async function applyMigrations(
     process.exit(1);
   }
 
-  const MIGRATIONS_DIR = args.dir ?? config.migrationsDir ?? "./migrations";
+  const MIGRATIONS_DIR = migrationsDir(args, config);
 
   if (!existsSync(MIGRATIONS_DIR)) {
     log.error(`Migrations directory does not exist: ${MIGRATIONS_DIR}`);
@@ -27,12 +28,12 @@ export async function applyMigrations(
   const migrations = args.file
     ? [args.file.endsWith(".sql") ? args.file : `${args.file}.sql`]
     : readdirSync(MIGRATIONS_DIR)
-        .filter((f) => f.endsWith(".sql"))
+        .filter((f: string) => f.endsWith(".sql"))
         .sort();
 
   const applied: string[] = await fetchApplied(sql);
 
-  const pending = migrations.filter((f) => !applied.includes(f));
+  const pending = migrations.filter((f: string) => !applied.includes(f));
   if (!pending.length) return log.success("No new migrations to apply.");
 
   log.info(`Applying ${pending.length} migration(s)...\n`);
