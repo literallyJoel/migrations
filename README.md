@@ -223,15 +223,9 @@ DROP TABLE IF EXISTS users;
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
----
-
 ## 📄 License
 
-MIT © Joel
+MIT
 
 ---
 
