@@ -35,19 +35,26 @@ export async function rollbackMigrations(
     return;
   }
 
-  for (const file of files) {
-    const fp = path.resolve(resolvedDir, file);
-    try {
-      if (!isBunSqlClient(sql)) {
-        const fs = await import("fs/promises");
-        const contents = await fs.readFile(fp, "utf-8");
-        await sql.query(contents);
-      } else {
-        await sql.file(fp);
+  const progress = log.progress("Rolling back migrations", files.length);
+  try {
+    for (const file of files) {
+      const fp = path.resolve(resolvedDir, file);
+      try {
+        if (!isBunSqlClient(sql)) {
+          const fs = await import("fs/promises");
+          const contents = await fs.readFile(fp, "utf-8");
+          await sql.query(contents);
+        } else {
+          await sql.file(fp);
+        }
+      } catch (e) {
+        throw new Error(`Failed rollback: ${file} — ${e}`);
       }
-      log.success(`Rolled back: ${file}`);
-    } catch (e) {
-      throw new Error(`Failed rollback: ${file} — ${e}`);
+      progress.tick(file);
     }
+    progress.stopSuccess("Rollback complete.");
+  } catch (e) {
+    progress.stopError("Rollback failed.");
+    throw e;
   }
 }

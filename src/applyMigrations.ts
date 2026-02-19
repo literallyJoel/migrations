@@ -39,13 +39,18 @@ export async function applyMigrations(
   const pending = migrations.filter((f: string) => !applied.includes(f));
   if (!pending.length) return log.success("No new migrations to apply.");
 
-  log.info(`Applying ${pending.length} migration(s)...\n`);
+  const progress = log.progress("Applying migrations", pending.length);
 
-  for (const name of pending) {
-    await applyOne(sql, MIGRATIONS_DIR, name);
+  try {
+    for (const name of pending) {
+      await applyOne(sql, MIGRATIONS_DIR, name);
+      progress.tick(name);
+    }
+    progress.stopSuccess("All migrations applied!");
+  } catch (err) {
+    progress.stopError("Migration run failed.");
+    throw err;
   }
-
-  log.success("All migrations applied!");
 }
 
 async function applyOne(sql: SQLClient, dir: string, file: string) {
@@ -66,7 +71,6 @@ async function applyOne(sql: SQLClient, dir: string, file: string) {
       ]);
       await sql.query("COMMIT");
     }
-    log.success(`Applied: ${file}`);
   } catch (err) {
     if (!isBunSqlClient(sql)) await sql.query("ROLLBACK");
     throw new Error(`Failed migration ${file}: ${err}`);
