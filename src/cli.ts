@@ -13,23 +13,28 @@ const args = parseArgs<{
   dir?: string;
 }>();
 
-const config = await loadConfig();
+try {
+  const config = await loadConfig();
 
-switch (args.command) {
-  case "create":
-    await createMigration({ table: args.table, dir: args.dir }, config);
-    break;
-  case "apply":
-    await applyMigrations({ file: args.file, dir: args.dir }, config);
-    break;
-  case "rollback":
-    await rollbackMigrations({ dir: args.dir }, config);
-    break;
-  default:
-    log.info(`Usage:
+  switch (args.command) {
+    case "create":
+      await createMigration({ table: args.table, dir: args.dir }, config);
+      break;
+    case "apply":
+      await applyMigrations({ file: args.file, dir: args.dir }, config);
+      break;
+    case "rollback":
+      await rollbackMigrations({ dir: args.dir }, config);
+      break;
+    default:
+      log.info(`Usage:
   bunx migrate create --table=users
   bunx migrate apply
   bunx migrate rollback
 `);
-    break;
+      break;
+  }
+} catch (e) {
+  log.error(String(e));
+  process.exit(1);
 }

@@ -8,7 +8,9 @@ export default function parseArgs<
   result.command = args[0];
 
   for (let i = 1; i < args.length; i++) {
-    const [key, val] = args[i].split("=");
+    const eqIndex = args[i].indexOf("=");
+    const key = eqIndex === -1 ? args[i] : args[i].slice(0, eqIndex);
+    const val = eqIndex === -1 ? undefined : args[i].slice(eqIndex + 1);
     if (key.startsWith("--")) {
       const name = key.slice(2);
       const isValueFlag = VALUE_FLAGS.includes(name);

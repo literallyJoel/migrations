@@ -17,6 +17,27 @@ afterEach(() => {
 });
 
 describe("loadConfig", () => {
+  test("prefers migrations.config.js when both js and ts configs exist", async () => {
+    const dir = withTempDir();
+    try {
+      writeFileSync(
+        path.join(dir, "migrations.config.js"),
+        "export default { migrationsDir: './from-js' };",
+      );
+      writeFileSync(
+        path.join(dir, "migrations.config.ts"),
+        "export default { migrationsDir: './from-ts' };",
+      );
+
+      process.chdir(dir);
+      const config = await loadConfig();
+
+      expect(config.migrationsDir).toBe("./from-js");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test("loads migrations.config.js when present", async () => {
     const dir = withTempDir();
     try {

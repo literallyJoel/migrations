@@ -5,10 +5,7 @@ import path from "path";
 import { createMigration } from "../src/createMigration";
 import { log } from "../src/logger";
 
-const originalExit = process.exit;
 const originalDateNow = Date.now;
-const originalLogWarn = log.warn;
-const originalLogError = log.error;
 const originalLogSuccess = log.success;
 
 function makeTmpDir() {
@@ -16,10 +13,7 @@ function makeTmpDir() {
 }
 
 afterEach(() => {
-  process.exit = originalExit;
   Date.now = originalDateNow;
-  log.warn = originalLogWarn;
-  log.error = originalLogError;
   log.success = originalLogSuccess;
 });
 
@@ -43,18 +37,12 @@ describe("createMigration", () => {
     }
   });
 
-  test("exits when table is missing", async () => {
+  test("throws when table is missing", async () => {
     const dir = makeTmpDir();
     try {
-      const warn = mock(() => {});
-      log.warn = warn;
-
-      process.exit = ((code?: number) => {
-        throw new Error(`EXIT:${code}`);
-      }) as typeof process.exit;
-
-      await expect(createMigration({ dir })).rejects.toThrow("EXIT:1");
-      expect(warn).toHaveBeenCalledTimes(1);
+      await expect(createMigration({ dir })).rejects.toThrow(
+        "Please specify a table name with --table=<name>",
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

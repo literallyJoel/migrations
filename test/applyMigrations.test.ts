@@ -3,30 +3,26 @@ import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { applyMigrations } from "../src/applyMigrations";
+import type {
+  BunSqlClient,
+  BunSqlTx,
+  MigrationConfig,
+  QuerySqlClient,
+} from "../src/config";
 import { log } from "../src/logger";
 
-const originalExit = process.exit;
 const originalLog = {
   info: log.info,
   success: log.success,
-  error: log.error,
 };
 
 function makeTmpDir() {
   return mkdtempSync(path.join(os.tmpdir(), "migrations-apply-test-"));
 }
 
-function throwExit() {
-  process.exit = ((code?: number) => {
-    throw new Error(`EXIT:${code}`);
-  }) as typeof process.exit;
-}
-
 afterEach(() => {
-  process.exit = originalExit;
   log.info = originalLog.info;
   log.success = originalLog.success;
-  log.error = originalLog.error;
 });
 
 describe("applyMigrations", () => {
@@ -43,7 +39,7 @@ describe("applyMigrations", () => {
       );
 
       const calls: Array<{ sql: string; params?: unknown[] }> = [];
-      const sql = {
+      const sql: QuerySqlClient = {
         query: mock(async (query: string, params?: unknown[]) => {
           calls.push({ sql: query, params });
           if (query.includes("SELECT filename FROM applied_migrations")) {
@@ -82,7 +78,10 @@ describe("applyMigrations", () => {
       const insertSpy = mock(async () => [] as Array<{ filename: string }>);
       const selectSpy = mock(async () => [] as Array<{ filename: string }>);
 
-      const wrapped = ((chunks: TemplateStringsArray, ...vals: unknown[]) => {
+      const wrappedTag = (
+        chunks: TemplateStringsArray,
+        ..._vals: unknown[]
+      ) => {
         const text = chunks.join("$");
         if (text.includes("SELECT filename FROM applied_migrations")) {
           return selectSpy();
@@ -91,22 +90,26 @@ describe("applyMigrations", () => {
           return insertSpy();
         }
         return Promise.resolve([]);
-      }) as any;
-      wrapped.begin = async (fn: (tx: any) => Promise<void>) => {
-        const tx = ((chunks: TemplateStringsArray) => {
+      };
+
+      const wrapped = wrappedTag as BunSqlClient;
+      wrapped.begin = async (fn: (tx: BunSqlTx) => Promise<void>) => {
+        const txTag = (chunks: TemplateStringsArray, ..._vals: unknown[]) => {
           const text = chunks.join("$");
           if (text.includes("INSERT INTO applied_migrations")) {
             return insertSpy();
           }
           return Promise.resolve([]);
-        }) as any;
+        };
+        const tx = txTag as BunSqlTx;
         tx.file = async (fp: string) => {
           txCalls.push(`file:${fp}`);
+          return undefined;
         };
         await fn(tx);
       };
-      wrapped.file = async () => {};
-      wrapped.unsafe = async () => {};
+      wrapped.file = async () => undefined;
+      wrapped.unsafe = async () => undefined;
 
       await applyMigrations({ dir, file: "one" }, { sql: wrapped });
 
@@ -118,27 +121,18 @@ describe("applyMigrations", () => {
     }
   });
 
-  test("logs and exits if sql client missing", async () => {
-    const error = mock(() => {});
-    log.error = error;
-    throwExit();
-
-    await expect(applyMigrations({}, {} as any)).rejects.toThrow("EXIT:1");
-    expect(error).toHaveBeenCalledTimes(1);
+  test("throws if sql client missing", async () => {
+    const config: MigrationConfig = {};
+    await expect(applyMigrations({}, config)).rejects.toThrow(
+      "No SQL client found. Please configure one in migrations.config.ts",
+    );
   });
 
-  test("logs and exits if migration directory is missing", async () => {
-    const error = mock(() => {});
-    log.error = error;
-    throwExit();
-
+  test("throws if migration directory is missing", async () => {
+    const sql: QuerySqlClient = { query: async () => ({ rows: [] }) };
     await expect(
-      applyMigrations(
-        { dir: "/tmp/not-here-xyz" },
-        { sql: { query: async () => ({ rows: [] }) } },
-      ),
-    ).rejects.toThrow("EXIT:1");
-    expect(error).toHaveBeenCalledTimes(1);
+      applyMigrations({ dir: "/tmp/not-here-xyz" }, { sql }),
+    ).rejects.toThrow("Migrations directory does not exist");
   });
 
   test("logs no-op when no pending migrations", async () => {
@@ -151,7 +145,7 @@ describe("applyMigrations", () => {
       const success = mock(() => {});
       log.success = success;
 
-      const sql = {
+      const sql: QuerySqlClient = {
         query: async (query: string) => {
           if (query.includes("SELECT filename")) {
             return { rows: [{ filename: "001_users.sql" }] };
