@@ -49,14 +49,14 @@ describe("rollbackMigrations", () => {
     const dir = makeTmpDir();
     try {
       writeFileSync(path.join(dir, "001_users.sql"), "DROP TABLE users;");
-      const fileSpy = mock(async () => {});
+      const fileSpy = mock(async (_filePath: string) => {});
 
       await rollbackMigrations({ rollbackDir: dir, sql: { file: fileSpy } } as any);
 
       expect(fileSpy).toHaveBeenCalledTimes(1);
-      expect((fileSpy.mock.calls[0]?.[0] as string).endsWith("001_users.sql")).toBe(
-        true
-      );
+      const firstArg = fileSpy.mock.calls[0]?.[0];
+      if (!firstArg) throw new Error("Expected file path argument");
+      expect(firstArg.endsWith("001_users.sql")).toBe(true);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

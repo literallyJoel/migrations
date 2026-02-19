@@ -1,16 +1,13 @@
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { log } from "../src/logger";
 
-const originalConsoleLog = console.log;
-
 afterEach(() => {
-  console.log = originalConsoleLog;
+  mock.restore();
 });
 
 describe("logger", () => {
   test("prints prefixed success message", () => {
-    const spy = mock(() => {});
-    console.log = spy as unknown as typeof console.log;
+    const spy = spyOn(console, "log").mockImplementation(() => {});
 
     log.success("done");
 
@@ -21,8 +18,7 @@ describe("logger", () => {
   });
 
   test("prints prefixed error and warn messages", () => {
-    const spy = mock(() => {});
-    console.log = spy as unknown as typeof console.log;
+    const spy = spyOn(console, "log").mockImplementation(() => {});
 
     log.error("bad");
     log.warn("careful");

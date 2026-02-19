@@ -31,7 +31,7 @@ describe("parseArgs", () => {
   test("sets boolean true for non-value flags", () => {
     process.argv = ["bun", "script", "apply", "--dry-run"];
 
-    const args = parseArgs<{ command: string; [key: string]: unknown }>();
+    const args = parseArgs<{ command: string; "dry-run"?: boolean }>();
 
     expect(args.command).toBe("apply");
     expect(args["dry-run"]).toBe(true);
