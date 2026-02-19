@@ -3,13 +3,16 @@ import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { rollbackMigrations } from "../src/rollbackMigrations";
+import type {
+  BunSqlClient,
+  MigrationConfig,
+  QuerySqlClient,
+} from "../src/config";
 import { log } from "../src/logger";
 
-const originalExit = process.exit;
 const originalLog = {
   info: log.info,
   success: log.success,
-  error: log.error,
 };
 
 function makeTmpDir() {
@@ -17,10 +20,8 @@ function makeTmpDir() {
 }
 
 afterEach(() => {
-  process.exit = originalExit;
   log.info = originalLog.info;
   log.success = originalLog.success;
-  log.error = originalLog.error;
 });
 
 describe("rollbackMigrations", () => {
@@ -31,13 +32,14 @@ describe("rollbackMigrations", () => {
       writeFileSync(path.join(dir, "002_posts.sql"), "DROP TABLE posts;");
 
       const order: string[] = [];
-      const sql = {
+      const sql: QuerySqlClient = {
         query: async (contents: string) => {
           order.push(contents.trim());
+          return { rows: [] };
         },
       };
 
-      await rollbackMigrations({ dir }, { sql } as any);
+      await rollbackMigrations({ dir }, { sql });
 
       expect(order).toEqual(["DROP TABLE posts;", "DROP TABLE users;"]);
     } finally {
@@ -50,11 +52,13 @@ describe("rollbackMigrations", () => {
     try {
       writeFileSync(path.join(dir, "001_users.sql"), "DROP TABLE users;");
       const fileSpy = mock(async (_filePath: string) => {});
+      const sql = ((_: TemplateStringsArray, ..._values: unknown[]) =>
+        Promise.resolve([])) as BunSqlClient;
+      sql.begin = async () => undefined;
+      sql.file = fileSpy;
+      sql.unsafe = async () => undefined;
 
-      await rollbackMigrations({
-        rollbackDir: dir,
-        sql: { file: fileSpy },
-      } as any);
+      await rollbackMigrations({ rollbackDir: dir, sql });
 
       expect(fileSpy).toHaveBeenCalledTimes(1);
       const firstArg = fileSpy.mock.calls[0]?.[0];
@@ -70,10 +74,11 @@ describe("rollbackMigrations", () => {
     try {
       const info = mock(() => {});
       log.info = info;
+      const sql: QuerySqlClient = {
+        query: async () => ({ rows: [] }),
+      };
 
-      await rollbackMigrations({ dir }, {
-        sql: { query: async () => {} },
-      } as any);
+      await rollbackMigrations({ dir }, { sql });
 
       expect(info).toHaveBeenCalledWith("No rollback files to apply.");
     } finally {
@@ -81,39 +86,26 @@ describe("rollbackMigrations", () => {
     }
   });
 
-  test("logs and exits when sql client missing", async () => {
-    const error = mock(() => {});
-    log.error = error;
-    process.exit = ((code?: number) => {
-      throw new Error(`EXIT:${code}`);
-    }) as typeof process.exit;
-
-    await expect(rollbackMigrations({} as any)).rejects.toThrow("EXIT:1");
-    expect(error).toHaveBeenCalledTimes(1);
+  test("throws when sql client missing", async () => {
+    const config: MigrationConfig = {};
+    await expect(rollbackMigrations(config)).rejects.toThrow(
+      "SQL client not configured in migrations.config.ts",
+    );
   });
 
-  test("logs and exits if rollback query fails", async () => {
+  test("throws if rollback query fails", async () => {
     const dir = makeTmpDir();
     try {
       writeFileSync(path.join(dir, "001_users.sql"), "DROP TABLE users;");
-      const error = mock(() => {});
-      log.error = error;
 
-      process.exit = ((code?: number) => {
-        throw new Error(`EXIT:${code}`);
-      }) as typeof process.exit;
-
-      await expect(
-        rollbackMigrations({ dir }, {
-          sql: {
-            query: () => {
-              throw new Error("boom");
-            },
-          },
-        } as any),
-      ).rejects.toThrow("EXIT:1");
-
-      expect(error).toHaveBeenCalledTimes(1);
+      const sql: QuerySqlClient = {
+        query: () => {
+          throw new Error("boom");
+        },
+      };
+      await expect(rollbackMigrations({ dir }, { sql })).rejects.toThrow(
+        "Failed rollback: 001_users.sql",
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

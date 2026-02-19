@@ -1,5 +1,10 @@
 import path from "path";
-import type { MigrationConfig } from "./config";
+import {
+  isBunSqlClient,
+  type MigrationConfig,
+  type SQLClient,
+  type QueryResultRow,
+} from "./config";
 import { log } from "./logger";
 import { migrationsDir } from "./migrationsDir";
 import { readdirSync, existsSync } from "fs";
@@ -10,17 +15,15 @@ export async function applyMigrations(
 ) {
   const sql = config.sql;
   if (!sql) {
-    log.error(
+    throw new Error(
       "No SQL client found. Please configure one in migrations.config.ts",
     );
-    process.exit(1);
   }
 
   const MIGRATIONS_DIR = migrationsDir(args, config);
 
   if (!existsSync(MIGRATIONS_DIR)) {
-    log.error(`Migrations directory does not exist: ${MIGRATIONS_DIR}`);
-    process.exit(1);
+    throw new Error(`Migrations directory does not exist: ${MIGRATIONS_DIR}`);
   }
 
   await ensureAppliedTable(sql);
@@ -36,20 +39,25 @@ export async function applyMigrations(
   const pending = migrations.filter((f: string) => !applied.includes(f));
   if (!pending.length) return log.success("No new migrations to apply.");
 
-  log.info(`Applying ${pending.length} migration(s)...\n`);
+  const progress = log.progress("Applying migrations", pending.length);
 
-  for (const name of pending) {
-    await applyOne(sql, MIGRATIONS_DIR, name);
+  try {
+    for (const name of pending) {
+      await applyOne(sql, MIGRATIONS_DIR, name);
+      progress.tick(name);
+    }
+    progress.stopSuccess("All migrations applied!");
+  } catch (err) {
+    progress.stopError("Migration run failed.");
+    throw err;
   }
-
-  log.success("All migrations applied!");
 }
 
-async function applyOne(sql: any, dir: string, file: string) {
+async function applyOne(sql: SQLClient, dir: string, file: string) {
   const full = path.resolve(dir, file);
   try {
-    if (sql.file) {
-      await sql.begin(async (tx: any) => {
+    if (isBunSqlClient(sql)) {
+      await sql.begin(async (tx) => {
         await tx.file(full);
         await tx`INSERT INTO applied_migrations (filename) VALUES (${file});`;
       });
@@ -63,34 +71,36 @@ async function applyOne(sql: any, dir: string, file: string) {
       ]);
       await sql.query("COMMIT");
     }
-    log.success(`Applied: ${file}`);
   } catch (err) {
-    if (sql.query) await sql.query("ROLLBACK");
-    log.error(`Failed migration ${file}: ${err}`);
-    process.exit(1);
+    if (!isBunSqlClient(sql)) await sql.query("ROLLBACK");
+    throw new Error(`Failed migration ${file}: ${err}`);
   }
 }
 
-async function ensureAppliedTable(sql: any) {
+async function ensureAppliedTable(sql: SQLClient) {
   const cmd = `
     CREATE TABLE IF NOT EXISTS applied_migrations (
       filename TEXT PRIMARY KEY,
       date_applied TIMESTAMP DEFAULT NOW()
     );
   `;
-  if (sql.file) {
+  if (isBunSqlClient(sql)) {
     await sql.unsafe(`${cmd}`);
   } else {
     await sql.query(cmd);
   }
 }
 
-async function fetchApplied(sql: any): Promise<string[]> {
-  if (sql.file) {
+async function fetchApplied(sql: SQLClient): Promise<string[]> {
+  if (isBunSqlClient(sql)) {
     const res = await sql`SELECT filename FROM applied_migrations`;
-    return res.map((r: any) => r.filename);
+    return res
+      .map((r: QueryResultRow) => r.filename)
+      .filter((v): v is string => typeof v === "string");
   } else {
     const { rows } = await sql.query("SELECT filename FROM applied_migrations");
-    return rows.map((r: any) => r.filename);
+    return rows
+      .map((r: QueryResultRow) => r.filename)
+      .filter((v): v is string => typeof v === "string");
   }
 }

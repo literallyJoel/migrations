@@ -1,7 +1,7 @@
 import path from "path";
 import { readdirSync, existsSync } from "fs";
 import { log } from "./logger";
-import type { MigrationConfig } from "./config";
+import { isBunSqlClient, type MigrationConfig } from "./config";
 
 export async function rollbackMigrations(
   argsOrConfig: { dir?: string } | MigrationConfig,
@@ -14,8 +14,7 @@ export async function rollbackMigrations(
 
   const sql = config.sql;
   if (!sql) {
-    log.error("SQL client not configured in migrations.config.ts");
-    process.exit(1);
+    throw new Error("SQL client not configured in migrations.config.ts");
   }
 
   const dir =
@@ -23,8 +22,7 @@ export async function rollbackMigrations(
   const resolvedDir = path.resolve(dir);
 
   if (!existsSync(resolvedDir)) {
-    log.error(`Rollback directory does not exist: ${resolvedDir}`);
-    process.exit(1);
+    throw new Error(`Rollback directory does not exist: ${resolvedDir}`);
   }
 
   const files = readdirSync(resolvedDir)
@@ -37,16 +35,26 @@ export async function rollbackMigrations(
     return;
   }
 
-  for (const file of files) {
-    const fp = path.resolve(resolvedDir, file);
-    const fs = await import("fs/promises");
-    const contents = await fs.readFile(fp, "utf-8");
-    try {
-      (await sql.query) ? sql.query(contents) : sql.file(fp);
-      log.success(`Rolled back: ${file}`);
-    } catch (e) {
-      log.error(`Failed rollback: ${file} — ${e}`);
-      process.exit(1);
+  const progress = log.progress("Rolling back migrations", files.length);
+  try {
+    for (const file of files) {
+      const fp = path.resolve(resolvedDir, file);
+      try {
+        if (!isBunSqlClient(sql)) {
+          const fs = await import("fs/promises");
+          const contents = await fs.readFile(fp, "utf-8");
+          await sql.query(contents);
+        } else {
+          await sql.file(fp);
+        }
+      } catch (e) {
+        throw new Error(`Failed rollback: ${file} — ${e}`);
+      }
+      progress.tick(file);
     }
+    progress.stopSuccess("Rollback complete.");
+  } catch (e) {
+    progress.stopError("Rollback failed.");
+    throw e;
   }
 }

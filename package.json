@@ -10,7 +10,8 @@
   "scripts": {
     "build": "rm -rf dist && tsc",
     "dev": "bun run ./src/cli.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "debug:ui": "bun run ./src/debugUi.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.3.9",

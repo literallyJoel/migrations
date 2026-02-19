@@ -14,8 +14,7 @@ export async function createMigration(
     mkdirSync(MIGRATIONS_DIR, { recursive: true });
 
   if (!args.table) {
-    log.warn("Please specify a table name with --table=<name>");
-    process.exit(1);
+    throw new Error("Please specify a table name with --table=<name>");
   }
 
   const filename = `${Date.now()}_${args.table}.sql`;
@@ -25,7 +24,6 @@ export async function createMigration(
     writeFileSync(filepath, "");
     log.success(`Created migration: ${filepath}`);
   } catch (e) {
-    log.error("Failed to create migration file: " + e);
-    process.exit(1);
+    throw new Error("Failed to create migration file: " + e);
   }
 }

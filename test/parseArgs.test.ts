@@ -45,4 +45,13 @@ describe("parseArgs", () => {
     expect(args.command).toBe("create");
     expect(args.table).toBeUndefined();
   });
+
+  test("preserves '=' inside value", () => {
+    process.argv = ["bun", "script", "apply", "--file=a=b=c.sql"];
+
+    const args = parseArgs<{ command: string; file?: string }>();
+
+    expect(args.command).toBe("apply");
+    expect(args.file).toBe("a=b=c.sql");
+  });
 });

@@ -12,3 +12,6 @@ rollbacks/
 migrations.config.ts
 migrations.config.js
 bun.lockb
+dist/debugUi.js
+dist/debugUi.d.ts
+dist/debugUi.d.ts.map
