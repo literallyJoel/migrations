@@ -5,7 +5,7 @@ import type { MigrationConfig } from "./config";
 
 export async function rollbackMigrations(
   argsOrConfig: { dir?: string } | MigrationConfig,
-  configArg?: MigrationConfig
+  configArg?: MigrationConfig,
 ) {
   const args: { dir?: string } =
     configArg !== undefined ? (argsOrConfig as { dir?: string }) : {};
@@ -42,7 +42,7 @@ export async function rollbackMigrations(
     const fs = await import("fs/promises");
     const contents = await fs.readFile(fp, "utf-8");
     try {
-      await sql.query ? sql.query(contents) : sql.file(fp);
+      (await sql.query) ? sql.query(contents) : sql.file(fp);
       log.success(`Rolled back: ${file}`);
     } catch (e) {
       log.error(`Failed rollback: ${file} — ${e}`);

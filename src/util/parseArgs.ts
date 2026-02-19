@@ -1,7 +1,7 @@
 const VALUE_FLAGS = ["dir", "table", "file"];
 
 export default function parseArgs<
-  T extends Record<string, string | boolean | undefined>
+  T extends Record<string, string | boolean | undefined>,
 >(): T {
   const args = process.argv.slice(2);
   const result: Record<string, unknown> = {};

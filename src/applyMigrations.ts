@@ -6,12 +6,12 @@ import { readdirSync, existsSync } from "fs";
 
 export async function applyMigrations(
   args: { file?: string; dir?: string },
-  config: MigrationConfig
+  config: MigrationConfig,
 ) {
   const sql = config.sql;
   if (!sql) {
     log.error(
-      "No SQL client found. Please configure one in migrations.config.ts"
+      "No SQL client found. Please configure one in migrations.config.ts",
     );
     process.exit(1);
   }

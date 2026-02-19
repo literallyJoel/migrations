@@ -12,7 +12,7 @@ describe("migrationsDir", () => {
   test("prefers args.dir", () => {
     const dir = migrationsDir(
       { dir: "./from-args" },
-      { migrationsDir: "./from-config" }
+      { migrationsDir: "./from-config" },
     );
 
     expect(dir).toBe("./from-args");

@@ -6,7 +6,7 @@ import { log } from "./logger";
 
 export async function createMigration(
   args: { table?: string; dir?: string },
-  config?: MigrationConfig
+  config?: MigrationConfig,
 ) {
   const MIGRATIONS_DIR = migrationsDir(args, config);
 

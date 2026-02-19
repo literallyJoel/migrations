@@ -51,7 +51,10 @@ describe("rollbackMigrations", () => {
       writeFileSync(path.join(dir, "001_users.sql"), "DROP TABLE users;");
       const fileSpy = mock(async (_filePath: string) => {});
 
-      await rollbackMigrations({ rollbackDir: dir, sql: { file: fileSpy } } as any);
+      await rollbackMigrations({
+        rollbackDir: dir,
+        sql: { file: fileSpy },
+      } as any);
 
       expect(fileSpy).toHaveBeenCalledTimes(1);
       const firstArg = fileSpy.mock.calls[0]?.[0];
@@ -68,7 +71,9 @@ describe("rollbackMigrations", () => {
       const info = mock(() => {});
       log.info = info;
 
-      await rollbackMigrations({ dir }, { sql: { query: async () => {} } } as any);
+      await rollbackMigrations({ dir }, {
+        sql: { query: async () => {} },
+      } as any);
 
       expect(info).toHaveBeenCalledWith("No rollback files to apply.");
     } finally {
@@ -99,7 +104,13 @@ describe("rollbackMigrations", () => {
       }) as typeof process.exit;
 
       await expect(
-        rollbackMigrations({ dir }, { sql: { query: () => { throw new Error("boom"); } } } as any)
+        rollbackMigrations({ dir }, {
+          sql: {
+            query: () => {
+              throw new Error("boom");
+            },
+          },
+        } as any),
       ).rejects.toThrow("EXIT:1");
 
       expect(error).toHaveBeenCalledTimes(1);

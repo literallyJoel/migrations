@@ -22,7 +22,7 @@ describe("loadConfig", () => {
     try {
       writeFileSync(
         path.join(dir, "migrations.config.js"),
-        "export default { migrationsDir: './x', rollbackDir: './y', sql: { ok: true } };"
+        "export default { migrationsDir: './x', rollbackDir: './y', sql: { ok: true } };",
       );
 
       process.chdir(dir);

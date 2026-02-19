@@ -33,8 +33,14 @@ describe("applyMigrations", () => {
   test("applies pending migrations with node-style sql.query client", async () => {
     const dir = makeTmpDir();
     try {
-      writeFileSync(path.join(dir, "001_users.sql"), "CREATE TABLE users(id int);");
-      writeFileSync(path.join(dir, "002_posts.sql"), "CREATE TABLE posts(id int);");
+      writeFileSync(
+        path.join(dir, "001_users.sql"),
+        "CREATE TABLE users(id int);",
+      );
+      writeFileSync(
+        path.join(dir, "002_posts.sql"),
+        "CREATE TABLE posts(id int);",
+      );
 
       const calls: Array<{ sql: string; params?: unknown[] }> = [];
       const sql = {
@@ -53,10 +59,10 @@ describe("applyMigrations", () => {
       await applyMigrations({ dir }, { sql });
 
       const ranMigration = calls.some((c) =>
-        c.sql.includes("CREATE TABLE posts(id int);")
+        c.sql.includes("CREATE TABLE posts(id int);"),
       );
       const inserted = calls.some((c) =>
-        c.sql.includes("INSERT INTO applied_migrations(filename)")
+        c.sql.includes("INSERT INTO applied_migrations(filename)"),
       );
 
       expect(ranMigration).toBe(true);
@@ -127,7 +133,10 @@ describe("applyMigrations", () => {
     throwExit();
 
     await expect(
-      applyMigrations({ dir: "/tmp/not-here-xyz" }, { sql: { query: async () => ({ rows: [] }) } })
+      applyMigrations(
+        { dir: "/tmp/not-here-xyz" },
+        { sql: { query: async () => ({ rows: [] }) } },
+      ),
     ).rejects.toThrow("EXIT:1");
     expect(error).toHaveBeenCalledTimes(1);
   });
@@ -135,7 +144,10 @@ describe("applyMigrations", () => {
   test("logs no-op when no pending migrations", async () => {
     const dir = makeTmpDir();
     try {
-      writeFileSync(path.join(dir, "001_users.sql"), "CREATE TABLE users(id int);");
+      writeFileSync(
+        path.join(dir, "001_users.sql"),
+        "CREATE TABLE users(id int);",
+      );
       const success = mock(() => {});
       log.success = success;
 
