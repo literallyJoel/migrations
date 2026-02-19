@@ -6,7 +6,7 @@ import { log } from "./logger";
 
 export async function createMigration(
   args: { table?: string; dir?: string },
-  config?: MigrationConfig
+  config?: MigrationConfig,
 ) {
   const MIGRATIONS_DIR = migrationsDir(args, config);
 
@@ -26,5 +26,6 @@ export async function createMigration(
     log.success(`Created migration: ${filepath}`);
   } catch (e) {
     log.error("Failed to create migration file: " + e);
+    process.exit(1);
   }
 }

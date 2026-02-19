@@ -23,7 +23,7 @@ switch (args.command) {
     await applyMigrations({ file: args.file, dir: args.dir }, config);
     break;
   case "rollback":
-    await rollbackMigrations(config);
+    await rollbackMigrations({ dir: args.dir }, config);
     break;
   default:
     log.info(`Usage:

@@ -4,7 +4,7 @@ import type { MigrationConfig } from "./config";
 
 export function migrationsDir(
   args: Record<string, string>,
-  config?: MigrationConfig
+  config?: MigrationConfig,
 ) {
   return (
     args.dir ??
@@ -12,7 +12,7 @@ export function migrationsDir(
     process.env["MIGRATIONS_DIR"] ??
     path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
-      "../../migrations"
+      "../../migrations",
     )
   );
 }
