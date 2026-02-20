@@ -40,6 +40,19 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      
+      - name: Configure authenticated remote (optional bypass token)
+        shell: bash
+        env:
+          RELEASE_PUSH_TOKEN: ${{ secrets.RELEASE_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${RELEASE_PUSH_TOKEN:-}" ]; then
+            git remote set-url origin "https://x-access-token:${RELEASE_PUSH_TOKEN}@github.com/${{ github.repository }}.git"
+            echo "Using RELEASE_PUSH_TOKEN for push/tag operations."
+          else
+            echo "Using default GITHUB_TOKEN for push/tag operations."
+          fi
 
       - name: Resolve version strategy
         id: versioning
